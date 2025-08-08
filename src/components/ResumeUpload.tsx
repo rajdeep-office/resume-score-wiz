@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ResumeUploadProps {
   onResumeContent: (content: string, filename?: string) => void;
@@ -25,6 +26,38 @@ export const ResumeUpload = ({ onResumeContent }: ResumeUploadProps) => {
     e.preventDefault();
     setIsDragging(false);
   }, []);
+
+  const uploadToStorage = async (file: File) => {
+    // Create a unique filename with timestamp
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}_${file.name}`;
+    const filePath = `${fileName}`;
+
+    // Upload file to Supabase storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('resumes')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      throw new Error(`Upload failed: ${uploadError.message}`);
+    }
+
+    // Save metadata to database
+    const { error: dbError } = await supabase
+      .from('resumes')
+      .insert({
+        filename: file.name,
+        file_path: filePath,
+        file_size: file.size,
+        content_preview: null // Will be updated after text extraction
+      });
+
+    if (dbError) {
+      throw new Error(`Database error: ${dbError.message}`);
+    }
+
+    return filePath;
+  };
 
   const processFile = async (file: File) => {
     setIsProcessing(true);
@@ -62,11 +95,22 @@ export const ResumeUpload = ({ onResumeContent }: ResumeUploadProps) => {
         throw new Error('Unsupported file format. Please use PDF, DOCX, or TXT files.');
       }
 
+      // Upload file to storage
+      const filePath = await uploadToStorage(file);
+
+      // Update database record with content preview
+      await supabase
+        .from('resumes')
+        .update({ 
+          content_preview: content.substring(0, 1000) // Store first 1000 chars
+        })
+        .eq('file_path', filePath);
+
       setUploadedFile(file);
       onResumeContent(content, file.name);
       toast({
         title: "Success",
-        description: `Resume "${file.name}" uploaded successfully!`,
+        description: `Resume "${file.name}" uploaded and saved successfully!`,
       });
     } catch (error) {
       console.error('Error processing file:', error);
