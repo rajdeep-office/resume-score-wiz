@@ -6,13 +6,13 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "resume-score-wiz.onrender.com",
+    host: "::",
     port: 8080,
+    allowedHosts: ["resume-score-wiz.onrender.com"],
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
