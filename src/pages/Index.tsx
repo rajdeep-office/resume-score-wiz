@@ -135,7 +135,7 @@ const Index = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-muted-foreground">
-              © 2024 Resume Scoring App. Built with React and modern web technologies.
+              © 2025 Resume Scoring App. Built with React and modern web technologies.
             </p>
           </div>
         </div>
